@@ -3,10 +3,13 @@ import { useState, useEffect, useRef } from "react";
 import Input from "./input";
 import { AiIcon, UserIcon } from "./icons";
 import { fetch, Body } from "@tauri-apps/api/http";
+import { invoke } from "@tauri-apps/api/tauri";
 
 export default function Home() {
+
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [llm_model, setLlmModel] = useState("tinyllama");
 
   const messagesEndRef = useRef(null);
 
@@ -16,15 +19,31 @@ export default function Home() {
 
   useEffect(scrollToBottom, [messages]);
 
+  useEffect(() => {
+    const get_llm_model = async () => {
+      const response = await invoke("read_args").then((res) => {
+        return res;
+      });
+
+      setLlmModel(response); // Update llm_model once the Promise resolves
+    };
+
+    get_llm_model();
+  }, []);
+
   const handleSend = async () => {
+    console.log(llm_model);
     const payload = Body.json({
-      model: "tinyllama",
+      model: llm_model,
       stream: false,
       messages: [{ role: "user", content: message }],
     });
 
     if (message !== "") {
-      setMessages((prevMessages) => [...prevMessages, { role: "user", content: message }]); // Update the messages
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { role: "user", content: message },
+      ]); // Update the messages
       try {
         const response = await fetch("http://localhost:11434/api/chat", {
           method: "POST",
@@ -52,13 +71,13 @@ export default function Home() {
           {messages.map((message, index) => (
             <div
               key={index}
-              class="flex gap-3 my-4 text-gray-600 text-sm flex-1"
+              className="flex gap-3 my-4 text-gray-600 text-sm flex-1"
             >
-              <span class="relative flex shrink-0 overflow-hidden rounded-full w-8 h-8">
+              <span className="relative flex shrink-0 overflow-hidden rounded-full w-8 h-8">
                 {message.role === "user" ? <UserIcon /> : <AiIcon />}
               </span>
-              <p class="leading-relaxed" ref={messagesEndRef}>
-                <span class="block font-bold text-gray-700">
+              <p className="leading-relaxed" ref={messagesEndRef}>
+                <span className="block font-bold text-gray-700">
                   {message.role === "user" ? "You" : "AI"}{" "}
                 </span>
                 {message.content}

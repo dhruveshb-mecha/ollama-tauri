@@ -1,36 +1,117 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+This is Next.js app wrap with tauri. [tauri-app with next js](https://tauri.app/v1/guides/getting-started/setup/next-js)
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+cargo tauri dev
+
+# for prod
+
+cargo tauri build
+
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Ollama on local machine
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+Dowlonad ollama on machine from the link
+[Download](https://ollama.com/download)
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+## Get llm model
 
-## Learn More
+Ollama supports a list of models available on [ollama.com/library](https://ollama.com/library "ollama model library")
 
-To learn more about Next.js, take a look at the following resources:
+we are using [TinyLlama](https://github.com/jzhang38/TinyLlama)
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Customize a model
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+### Import from GGUF
 
-## Deploy on Vercel
+Ollama supports importing GGUF models in the Modelfile:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Create a file named `Modelfile`, with a `FROM` instruction with the local filepath to the model you want to import.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+```
+
+FROM tinyllama
+
+```
+
+2. Create the model in Ollama
+
+```
+
+ollama create mecha-llm -f Modelfile
+
+```
+
+3. Run the model
+
+```
+
+ollama run mecha-llm
+
+```
+
+### model we're using mecha-llm
+
+```
+FROM tinyllama
+
+# sets the temperature to 1 [higher is more creative, lower is more coherent]
+PARAMETER temperature 0.5
+
+# sets the context window size to 1024, this controls how many tokens the LLM can use as context to generate the next token
+PARAMETER num_ctx 1024
+
+# Maximum number of tokens to predict when generating text.
+PARAMETER num_predict 72
+
+# Reduces the probability of generating nonsense.
+PARAMETER top_p 10
+
+# Sets how far back for the model to look back to prevent repetition
+PARAMETER repeat_last_n 18
+
+PARAMETER mirostat 0
+
+# Tail free sampling is used to reduce the impact of less probable tokens from the output.
+PARAMETER tfs_z 0.5
+```
+
+### Run created model
+
+`ollama run mecha-llm`
+
+## REST API
+
+Ollama has a REST API for running and managing models.
+
+### Generate a response
+
+```
+
+curl http://localhost:11434/api/generate -d '{
+
+"model": "mecha-llm",
+
+"prompt":"Why is the sky blue?"
+
+}'
+
+```
+
+### Chat with a model
+
+```
+
+curl http://localhost:11434/api/chat -d '{
+"model": "mecha-llm",
+"messages": [
+{ "role": "user", "content": "why is the sky blue?" }
+]
+}'
+
+```
+
+See the [API documentation](./docs/api.md) for all endpoints.
